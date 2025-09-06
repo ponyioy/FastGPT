@@ -1,18 +1,9 @@
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-// @ts-ignore
-import('pdfjs-dist/legacy/build/pdf.worker.min.mjs');
-import { type ReadRawTextByBuffer, type ReadFileResponse } from '../type';
 import axios from 'axios';
 import FormData from 'form-data';
-type TokenType = {
-  str: string;
-  dir: string;
-  width: number;
-  height: number;
-  transform: number[];
-  fontName: string;
-  hasEOL: boolean;
-};
+import http from 'http';
+import https from 'https';
+import { type ReadRawTextByBuffer, type ReadFileResponse } from '../type';
+
 
 export const readPdfFile = async ({
   buffer,
@@ -42,25 +33,20 @@ export const readPdfFile = async ({
         };
 
         console.log('[PDF] headers:', headers);
-        // 打印 hostname（仅用于确认）
-        try {
-          const urlObj = new URL(apiUrl);
-          console.log('[PDF] hostname:', urlObj.hostname, 'port:', urlObj.port);
-        } catch (e) {
-          console.error('[PDF] URL 解析失败:', e);
-        }
-        // POST 请求
-        const { data: response } = await axios.post<{
-          pages: number;
-          markdown: string;
-          error?: Object | string;
-        }>(apiUrl, form, {
+        // Node HTTP/HTTPS adapter 保证 URL 被正确解析
+        const instance = axios.create({
+          httpAgent: new http.Agent({ keepAlive: true }),
+          httpsAgent: new https.Agent({ keepAlive: true }),
+          timeout: 600_000 // 10 分钟
+        });
+
+        const res = await instance.post(apiUrl, form, {
           headers,
-          timeout: 600000,
           maxContentLength: Infinity,
           maxBodyLength: Infinity
         });
-        console.log('[PDF] API response:', response);
+
+        console.log('[PDF] response keys:', Object.keys(res.data || {}));
 
         // FastAPI 返回的 markdown 字段即 PDF 解析内容
         return {
