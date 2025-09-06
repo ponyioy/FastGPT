@@ -28,12 +28,19 @@ export const readPdfFile = async ({
           contentType: 'application/pdf'
         });
 
-        const headers = form.getHeaders();
-        delete headers.host;
+        // 展开 headers 并加上可选 token
+        const headers = {
+          ...form.getHeaders()
+        };
 
-        // POST 请求到 API
-        const res = await axios.post(apiUrl, form, {
+        // POST 请求
+        const { data: response } = await axios.post<{
+          pages: number;
+          markdown: string;
+          error?: Object | string;
+        }>(apiUrl, form, {
           headers,
+          timeout: 600000,
           maxContentLength: Infinity,
           maxBodyLength: Infinity
         });
