@@ -20,7 +20,15 @@ export const readPdfFile = async ({
 }: ReadRawTextByBuffer): Promise<ReadFileResponse> => {
     try {
         // 借用 doc2xKey 存 API URL
-        const apiUrl = pdfApiUrl || 'http://100.100.1.134:7233/v1/parse/file_v2';
+        const apiUrl = pdfApiUrl?.trim() || 'http://100.100.1.134:7233/v1/parse/file_v2';
+        console.log('[PDF] apiUrl:', apiUrl);
+
+        if (!apiUrl) {
+          throw new Error('PDF API URL 未配置');
+        }
+
+        // 打印 buffer 长度，确认数据存在
+        console.log('[PDF] buffer length:', buffer?.length);
         // 构造 multipart/form-data
         const form = new FormData();
         form.append('file', buffer, {
@@ -33,6 +41,8 @@ export const readPdfFile = async ({
           ...form.getHeaders()
         };
 
+        console.log('[PDF] headers:', headers);
+
         // POST 请求
         const { data: response } = await axios.post<{
           pages: number;
@@ -44,6 +54,7 @@ export const readPdfFile = async ({
           maxContentLength: Infinity,
           maxBodyLength: Infinity
         });
+        console.log('[PDF] API response:', response);
 
         // FastAPI 返回的 markdown 字段即 PDF 解析内容
         return {
