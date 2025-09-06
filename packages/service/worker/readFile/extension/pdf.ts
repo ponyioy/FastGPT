@@ -21,7 +21,8 @@ export const readPdfFile = async ({
     try {
         // 借用 doc2xKey 存 API URL
         const apiUrl = pdfApiUrl || 'http://100.100.1.134:7233/v1/parse/file_v2';
-
+        const headers = form.getHeaders();
+        delete headers.host;
         // 构造 multipart/form-data
         const form = new FormData();
         form.append('file', buffer, {
@@ -31,9 +32,7 @@ export const readPdfFile = async ({
 
         // POST 请求到 API
         const res = await axios.post(apiUrl, form, {
-          headers: {
-            ...form.getHeaders() // 不要手动加 host，避免 Axios ENOTFOUND
-          },
+          headers,
           maxContentLength: Infinity,
           maxBodyLength: Infinity
         });
