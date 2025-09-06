@@ -2,7 +2,8 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 // @ts-ignore
 import('pdfjs-dist/legacy/build/pdf.worker.min.mjs');
 import { type ReadRawTextByBuffer, type ReadFileResponse } from '../type';
-
+import axios from 'axios';
+import FormData from 'form-data';
 type TokenType = {
   str: string;
   dir: string;
@@ -13,63 +14,36 @@ type TokenType = {
   hasEOL: boolean;
 };
 
-export const readPdfFile = async ({ buffer }: ReadRawTextByBuffer): Promise<ReadFileResponse> => {
-  const readPDFPage = async (doc: any, pageNo: number) => {
+export const readPdfFile = async ({
+  buffer,
+  pdfApiUrl
+}: ReadRawTextByBuffer): Promise<ReadFileResponse> => {
     try {
-      const page = await doc.getPage(pageNo);
-      const tokenizedText = await page.getTextContent();
+        // 借用 doc2xKey 存 API URL
+        const apiUrl = pdfApiUrl || 'http://100.100.1.134:7233/v1/parse/file_v2';
 
-      const viewport = page.getViewport({ scale: 1 });
-      const pageHeight = viewport.height;
-      const headerThreshold = pageHeight * 0.95;
-      const footerThreshold = pageHeight * 0.05;
+        // 构造 multipart/form-data
+        const form = new FormData();
+        form.append('file', buffer, {
+          filename: 'file.pdf',
+          contentType: 'application/pdf'
+        });
 
-      const pageTexts: TokenType[] = tokenizedText.items.filter((token: TokenType) => {
-        return (
-          !token.transform ||
-          (token.transform[5] < headerThreshold && token.transform[5] > footerThreshold)
-        );
-      });
+        // POST 请求到 API
+        const res = await axios.post(apiUrl, form, {
+          headers: {
+            ...form.getHeaders() // 不要手动加 host，避免 Axios ENOTFOUND
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity
+        });
 
-      // concat empty string 'hasEOL'
-      for (let i = 0; i < pageTexts.length; i++) {
-        const item = pageTexts[i];
-        if (item.str === '' && pageTexts[i - 1]) {
-          pageTexts[i - 1].hasEOL = item.hasEOL;
-          pageTexts.splice(i, 1);
-          i--;
-        }
+        // FastAPI 返回的 markdown 字段即 PDF 解析内容
+        return {
+          rawText: res.data?.markdown ?? ''
+            };
+      } catch (error) {
+        console.error('PDF HTTP 解析失败:', error);
+        return { rawText: '', error: String(error) };
       }
-
-      page.cleanup();
-
-      return pageTexts
-        .map((token) => {
-          const paragraphEnd = token.hasEOL && /([。？！.?!\n\r]|(\r\n))$/.test(token.str);
-
-          return paragraphEnd ? `${token.str}\n` : token.str;
-        })
-        .join('');
-    } catch (error) {
-      console.log('pdf read error', error);
-      return '';
-    }
-  };
-
-  // @ts-ignore
-  const loadingTask = pdfjs.getDocument(buffer.buffer);
-  const doc = await loadingTask.promise;
-
-  // Avoid OOM.
-  let result = '';
-  const pageArr = Array.from({ length: doc.numPages }, (_, i) => i + 1);
-  for (let i = 0; i < pageArr.length; i++) {
-    result += await readPDFPage(doc, i + 1);
-  }
-
-  loadingTask.destroy();
-
-  return {
-    rawText: result
-  };
 };

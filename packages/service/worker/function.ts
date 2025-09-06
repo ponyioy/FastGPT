@@ -19,6 +19,7 @@ export const readRawContentFromBuffer = (props: {
   extension: string;
   encoding: string;
   buffer: Buffer;
+  pdfApiUrl?: string; // 新增字段
 }) => {
   return runWorker<ReadFileResponse>(WorkerNameEnum.readFile, props);
 };

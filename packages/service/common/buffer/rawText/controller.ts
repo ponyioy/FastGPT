@@ -98,7 +98,8 @@ export const getRawTextBuffer = async (sourceId: string) => {
           await readRawContentFromBuffer({
             extension: 'txt',
             encoding: 'utf8',
-            buffer: fileBuffers
+            buffer: fileBuffers,
+            pdfApiUrl: global.systemEnv.customPdfParse?.doc2xKey
           })
         ).rawText;
       }

@@ -66,7 +66,8 @@ export const readRawContentByFileBuffer = async ({
     readRawContentFromBuffer({
       extension,
       encoding,
-      buffer
+      buffer,
+      pdfApiUrl: global.systemEnv.customPdfParse?.doc2xKey
     });
   const parsePdfFromCustomService = async (): Promise<ReadFileResponse> => {
     const url = global.systemEnv.customPdfParse?.url;
