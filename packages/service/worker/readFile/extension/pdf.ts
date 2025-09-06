@@ -55,15 +55,13 @@ export const readPdfFile = async ({
 
         console.log('[PDF] headers:', headers);
 
-        // Node HTTP/HTTPS adapter 保证 URL 被正确解析
-        const instance = axios.create({
+
+        // 替换原来的 instance.post 调用
+        const res = await axios.post(apiUrl, form, {
+          headers,
           httpAgent: new http.Agent({ keepAlive: true }),
           httpsAgent: new https.Agent({ keepAlive: true }),
-          timeout: 600_000 // 10 分钟
-        });
-
-        const res = await instance.post(apiUrl, form, {
-          headers,
+          timeout: 600_000,
           maxContentLength: Infinity,
           maxBodyLength: Infinity
         });
