@@ -42,7 +42,13 @@ export const readPdfFile = async ({
         };
 
         console.log('[PDF] headers:', headers);
-
+        // 打印 hostname（仅用于确认）
+        try {
+          const urlObj = new URL(apiUrl);
+          console.log('[PDF] hostname:', urlObj.hostname, 'port:', urlObj.port);
+        } catch (e) {
+          console.error('[PDF] URL 解析失败:', e);
+        }
         // POST 请求
         const { data: response } = await axios.post<{
           pages: number;
